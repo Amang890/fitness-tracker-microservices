@@ -1,9 +1,9 @@
 import axios from "axios";
 
-const API_URL = 'http://localhost:8085/api';
+const API_URL = 'https://fitness-api-gateway-w2he.onrender.com/api';
 
 const api = axios.create({
-    baseURL:API_URL
+    baseURL: API_URL
 });
 
 api.interceptors.request.use((config) => {
@@ -17,10 +17,9 @@ api.interceptors.request.use((config) => {
     if (userId) {
         config.headers['X-User-ID'] = userId;
     }
-    return config;
-}
-);
 
+    return config;
+});
 
 export const getActivities = () => api.get('/activities');
 export const addActivity = (activity) => api.post('/activities/trackActivity', activity);

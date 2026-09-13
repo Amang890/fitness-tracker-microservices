@@ -1,8 +1,15 @@
 export const authConfig = {
     clientId: 'fitness-application',
-    authorizationEndpoint: 'http://localhost:8080/realms/fitness-application/protocol/openid-connect/auth',
-    tokenEndpoint: 'http://localhost:8080/realms/fitness-application/protocol/openid-connect/token',
-    redirectUri: 'http://localhost:5173',
+
+    authorizationEndpoint:
+        'https://fitness-keycloak-0zpe.onrender.com/realms/fitness-application/protocol/openid-connect/auth',
+
+    tokenEndpoint:
+        'https://fitness-keycloak-0zpe.onrender.com/realms/fitness-application/protocol/openid-connect/token',
+
+    redirectUri: 'https://fitness-frontend-n16o.onrender.com',
+
     scope: 'openid profile email offline_access',
+
     onRefreshTokenExpire: (event) => event.logIn(),
-  }
+};

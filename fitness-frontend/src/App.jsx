@@ -23,6 +23,7 @@ import {
   Route,
   Routes,
   useLocation,
+  Link,
 } from "react-router";
 
 import {
@@ -33,6 +34,7 @@ import ActivityForm from "./components/ActivityForm";
 import ActivityList from "./components/ActivityList";
 import ActivityDetail from "./components/ActivityDetail";
 import Dashboard from "./components/Dashboard";
+import Register from "./components/Register";
 
 import { getActivities } from "./services/api.js";
 
@@ -229,6 +231,25 @@ function LoginPage({ logIn }) {
         </Button>
 
 
+        {/* REGISTER LINK */}
+
+        <Box className="register-link-container">
+
+          <Typography>
+            Don't have an account?{" "}
+
+            <Link
+              to="/register"
+              className="register-link"
+            >
+              Register
+            </Link>
+
+          </Typography>
+
+        </Box>
+
+
         <Box className="login-features">
 
           <Box>
@@ -348,12 +369,34 @@ function App() {
   ]);
 
 
+  /*
+   * USER IS NOT LOGGED IN
+   *
+   * Register page should still be accessible
+   */
+
   if (!token) {
 
     return (
-      <LoginPage
-        logIn={logIn}
-      />
+
+      <Routes>
+
+        <Route
+          path="/register"
+          element={<Register />}
+        />
+
+        <Route
+          path="*"
+          element={
+            <LoginPage
+              logIn={logIn}
+            />
+          }
+        />
+
+      </Routes>
+
     );
 
   }

@@ -1,6 +1,6 @@
 package com.fitnessMicroServiceeApplication.userService.service;
 
-
+import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.representations.idm.CredentialRepresentation;
@@ -8,7 +8,6 @@ import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import jakarta.ws.rs.core.Response;
 import java.util.Collections;
 
 @Service
@@ -66,7 +65,8 @@ public class KeycloakService {
                 );
             }
 
-            String location = response.getHeaderString("Location");
+            String location =
+                    response.getHeaderString("Location");
 
             if (location == null || location.isBlank()) {
                 throw new RuntimeException(

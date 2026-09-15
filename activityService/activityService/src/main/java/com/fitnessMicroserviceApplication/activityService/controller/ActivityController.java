@@ -30,6 +30,7 @@ public class ActivityController {
         );
     }
 
+
     @GetMapping
     public ResponseEntity<List<ActivityResponse>> getUserActivities(
             @RequestHeader("X-User-ID") String userId) {

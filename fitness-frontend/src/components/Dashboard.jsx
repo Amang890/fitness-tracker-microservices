@@ -1,226 +1,495 @@
-import React from "react";
-import { Box, Typography } from "@mui/material";
+import {
+  Box,
+  Typography,
+} from "@mui/material";
 
-const activityEmoji = {
-  RUNNING: "🏃",
-  WALKING: "🚶",
-  CYCLING: "🚴",
-  SWIMMING: "🏊",
-};
+import React from "react";
 
 const Dashboard = ({ activities = [] }) => {
+
+  // =========================
+  // BASIC STATISTICS
+  // =========================
+
   const totalActivities = activities.length;
 
   const totalCalories = activities.reduce(
-    (sum, activity) => sum + Number(activity.caloriesBurned || 0),
+    (total, activity) =>
+      total + Number(activity.caloriesBurned || 0),
     0
   );
 
-  const totalDuration = activities.reduce(
-    (sum, activity) => sum + Number(activity.duration || 0),
+  const totalMinutes = activities.reduce(
+    (total, activity) =>
+      total + Number(activity.duration || 0),
     0
   );
+
+
+  // =========================
+  // ADDITIONAL METRICS
+  // =========================
 
   const totalSteps = activities.reduce(
-    (sum, activity) =>
-      sum + Number(activity.additionalMetrics?.steps || 0),
+    (total, activity) =>
+      total +
+      Number(
+        activity.additionalMetrics?.steps || 0
+      ),
     0
   );
+
 
   const totalDistance = activities.reduce(
-    (sum, activity) =>
-      sum + Number(activity.additionalMetrics?.distanceKm || 0),
+    (total, activity) =>
+      total +
+      Number(
+        activity.additionalMetrics?.distanceKm || 0
+      ),
     0
   );
 
-  const heartRates = activities
-    .map((activity) =>
-      Number(activity.additionalMetrics?.averageHeartRate || 0)
-    )
-    .filter((rate) => rate > 0);
 
-  const averageHeartRate = heartRates.length
-    ? Math.round(
-        heartRates.reduce((sum, rate) => sum + rate, 0) /
-          heartRates.length
-      )
-    : 0;
+  const heartRateActivities = activities.filter(
+    (activity) =>
+      Number(
+        activity.additionalMetrics?.avgHeartRate || 0
+      ) > 0
+  );
 
-  const activityCounts = activities.reduce((counts, activity) => {
-    counts[activity.type] = (counts[activity.type] || 0) + 1;
-    return counts;
-  }, {});
 
-  const stats = [
-    { icon: "🏃", value: totalActivities, label: "ACTIVITIES" },
-    {
-      icon: "🔥",
-      value: totalCalories.toLocaleString(),
-      label: "CALORIES",
-    },
-    { icon: "⏱️", value: totalDuration, label: "MINUTES" },
-    {
-      icon: "👟",
-      value: totalSteps.toLocaleString(),
-      label: "STEPS",
-    },
-    {
-      icon: "📍",
-      value: totalDistance.toFixed(1),
-      label: "DISTANCE KM",
-    },
-    {
-      icon: "❤️",
-      value: averageHeartRate || "--",
-      label: "AVG HEART RATE",
-    },
-  ];
+  const averageHeartRate =
+    heartRateActivities.length > 0
+      ? Math.round(
+          heartRateActivities.reduce(
+            (total, activity) =>
+              total +
+              Number(
+                activity.additionalMetrics
+                  ?.avgHeartRate || 0
+              ),
+            0
+          ) / heartRateActivities.length
+        )
+      : 0;
+
+
+  // =========================
+  // WEEKLY ACTIVITY
+  // =========================
 
   const today = new Date();
 
-  const weeklyData = Array.from({ length: 7 }, (_, index) => {
+  const weeklyData = [];
+
+  for (let i = 6; i >= 0; i--) {
+
     const date = new Date(today);
-    date.setDate(today.getDate() - (6 - index));
 
-    const count = activities.filter((activity) => {
-      const activityDate = new Date(
-        activity.startTime || activity.createdAt
-      );
+    date.setHours(0, 0, 0, 0);
 
-      return (
-        activityDate.getFullYear() === date.getFullYear() &&
-        activityDate.getMonth() === date.getMonth() &&
-        activityDate.getDate() === date.getDate()
-      );
-    }).length;
+    date.setDate(
+      today.getDate() - i
+    );
 
-    return {
-      day: date.toLocaleDateString("en-US", {
-        weekday: "short",
-      }),
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+
+
+    const count = activities.filter(
+      (activity) => {
+
+        if (!activity.startTime) {
+          return false;
+        }
+
+        const activityDate =
+          new Date(activity.startTime);
+
+        return (
+          activityDate.getFullYear() === year &&
+          activityDate.getMonth() === month &&
+          activityDate.getDate() === day
+        );
+      }
+    ).length;
+
+
+    weeklyData.push({
+      day: date.toLocaleDateString(
+        "en-US",
+        {
+          weekday: "short",
+        }
+      ),
       count,
-    };
-  });
+    });
+  }
+
 
   const maxWeeklyCount = Math.max(
-    ...weeklyData.map((item) => item.count),
+    ...weeklyData.map(
+      (item) => item.count
+    ),
     1
   );
 
-  return (
-    <Box className="dashboard-analytics">
 
-      <Typography className="analytics-title">
+  // =========================
+  // ACTIVITY BREAKDOWN
+  // =========================
+
+  const activityBreakdown =
+    activities.reduce(
+      (result, activity) => {
+
+        const type =
+          activity.type || "OTHER";
+
+        result[type] =
+          (result[type] || 0) + 1;
+
+        return result;
+
+      },
+      {}
+    );
+
+
+  // =========================
+  // ACTIVITY EMOJIS
+  // =========================
+
+  const getActivityEmoji = (type) => {
+
+    const emojis = {
+      RUNNING: "🏃",
+      WALKING: "🚶",
+      CYCLING: "🚴",
+      SWIMMING: "🏊",
+      WEIGHT_TRAINING: "🏋️",
+      YOGA: "🧘",
+      HIIT: "🔥",
+      CARDIO: "❤️",
+      STRETCHING: "🤸",
+      OTHER: "💪",
+    };
+
+    return emojis[type] || "💪";
+  };
+
+
+  return (
+    <Box className="dashboard-container">
+
+      {/* =========================
+          TITLE
+      ========================= */}
+
+      <Typography className="section-title">
         Your Fitness Overview
       </Typography>
 
-      {/* STATS */}
-      <div className="stats-grid">
-        {stats.map((stat) => (
-          <div className="stat-card" key={stat.label}>
-            <div className="stat-icon">
-              {stat.icon}
-            </div>
 
-            <div className="stat-info">
-              <strong>{stat.value}</strong>
-              <span>{stat.label}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* =========================
+          STAT CARDS
+      ========================= */}
 
-      {/* CHARTS */}
-      <div className="analytics-grid">
+      <Box className="stats-grid">
 
-        {/* WEEKLY ACTIVITY */}
-        <div className="analytics-card">
+        {/* ACTIVITIES */}
 
-          <Typography className="analytics-card-title">
+        <Box className="stat-card">
+
+          <Box className="stat-icon">
+            🏃
+          </Box>
+
+          <Box>
+
+            <Typography className="stat-value">
+              {totalActivities}
+            </Typography>
+
+            <Typography className="stat-label">
+              ACTIVITIES
+            </Typography>
+
+          </Box>
+
+        </Box>
+
+
+        {/* CALORIES */}
+
+        <Box className="stat-card">
+
+          <Box className="stat-icon">
+            🔥
+          </Box>
+
+          <Box>
+
+            <Typography className="stat-value">
+              {totalCalories.toLocaleString()}
+            </Typography>
+
+            <Typography className="stat-label">
+              CALORIES
+            </Typography>
+
+          </Box>
+
+        </Box>
+
+
+        {/* MINUTES */}
+
+        <Box className="stat-card">
+
+          <Box className="stat-icon">
+            ⏱️
+          </Box>
+
+          <Box>
+
+            <Typography className="stat-value">
+              {totalMinutes}
+            </Typography>
+
+            <Typography className="stat-label">
+              MINUTES
+            </Typography>
+
+          </Box>
+
+        </Box>
+
+
+        {/* STEPS */}
+
+        <Box className="stat-card">
+
+          <Box className="stat-icon">
+            👟
+          </Box>
+
+          <Box>
+
+            <Typography className="stat-value">
+              {totalSteps.toLocaleString()}
+            </Typography>
+
+            <Typography className="stat-label">
+              STEPS
+            </Typography>
+
+          </Box>
+
+        </Box>
+
+
+        {/* DISTANCE */}
+
+        <Box className="stat-card">
+
+          <Box className="stat-icon">
+            📍
+          </Box>
+
+          <Box>
+
+            <Typography className="stat-value">
+              {totalDistance.toFixed(1)}
+            </Typography>
+
+            <Typography className="stat-label">
+              DISTANCE KM
+            </Typography>
+
+          </Box>
+
+        </Box>
+
+
+        {/* HEART RATE */}
+
+        <Box className="stat-card">
+
+          <Box className="stat-icon">
+            ❤️
+          </Box>
+
+          <Box>
+
+            <Typography className="stat-value">
+              {averageHeartRate > 0
+                ? averageHeartRate
+                : "--"}
+            </Typography>
+
+            <Typography className="stat-label">
+              AVG HEART RATE
+            </Typography>
+
+          </Box>
+
+        </Box>
+
+      </Box>
+
+
+      {/* =========================
+          CHARTS
+      ========================= */}
+
+      <Box className="dashboard-charts">
+
+
+        {/* =========================
+            WEEKLY ACTIVITY
+        ========================= */}
+
+        <Box className="chart-card">
+
+          <Typography className="chart-title">
             Weekly Activity
           </Typography>
 
-          <div className="weekly-chart">
 
-            {weeklyData.map((item) => (
-              <div className="chart-column" key={item.day}>
+          <Box className="weekly-chart">
 
-                <span className="chart-value">
-                  {item.count}
-                </span>
+            {weeklyData.map(
+              (item, index) => {
 
-                <div className="bar-container">
-                  <div
-                    className="chart-bar"
-                    style={{
-                      height: `${
-                        item.count > 0
-                          ? Math.max(
-                              (item.count / maxWeeklyCount) * 100,
-                              15
-                            )
-                          : 5
-                      }%`,
-                    }}
-                  />
-                </div>
+                const barHeight =
+                  item.count === 0
+                    ? 5
+                    : Math.max(
+                        (item.count /
+                          maxWeeklyCount) *
+                          150,
+                        15
+                      );
 
-                <span className="chart-day">
-                  {item.day}
-                </span>
 
-              </div>
-            ))}
+                return (
 
-          </div>
-        </div>
+                  <Box
+                    key={index}
+                    className="weekly-column"
+                  >
 
-        {/* ACTIVITY BREAKDOWN */}
-        <div className="analytics-card">
+                    {/* COUNT */}
 
-          <Typography className="analytics-card-title">
+                    <Typography className="weekly-count">
+                      {item.count}
+                    </Typography>
+
+
+                    {/* BAR */}
+
+                    <Box
+                      className="weekly-bar"
+                      style={{
+                        height:
+                          `${barHeight}px`,
+                      }}
+                    />
+
+
+                    {/* DAY */}
+
+                    <Typography className="weekly-day">
+                      {item.day}
+                    </Typography>
+
+                  </Box>
+
+                );
+              }
+            )}
+
+          </Box>
+
+        </Box>
+
+
+        {/* =========================
+            ACTIVITY BREAKDOWN
+        ========================= */}
+
+        <Box className="chart-card">
+
+          <Typography className="chart-title">
             Activity Breakdown
           </Typography>
 
-          {Object.keys(activityCounts).length === 0 ? (
-            <div className="empty-breakdown">
-              Add your first workout to see your
-              activity breakdown 💪
-            </div>
-          ) : (
-            <div className="breakdown-list">
 
-              {Object.entries(activityCounts).map(
+          <Box className="breakdown-list">
+
+            {Object.entries(
+              activityBreakdown
+            )
+              .sort(
+                (a, b) => b[1] - a[1]
+              )
+              .map(
                 ([type, count]) => (
-                  <div
-                    className="breakdown-item"
+
+                  <Box
                     key={type}
+                    className="breakdown-item"
                   >
 
-                    <div className="breakdown-name">
+                    <Typography
+                      className="breakdown-name"
+                    >
 
-                      <span>
-                        {activityEmoji[type] || "🏋️"}
-                      </span>
+                      {getActivityEmoji(type)}
 
-                      <strong>{type}</strong>
+                      {" "}
 
-                    </div>
+                      {type
+                        .replaceAll(
+                          "_",
+                          " "
+                        )}
 
-                    <div className="breakdown-count">
+                    </Typography>
+
+
+                    <Box className="breakdown-count">
                       {count}
-                    </div>
+                    </Box>
 
-                  </div>
+                  </Box>
+
                 )
               )}
 
-            </div>
-          )}
 
-        </div>
+            {activities.length === 0 && (
 
-      </div>
+              <Typography
+                sx={{
+                  color: "#777",
+                  textAlign: "center",
+                  padding: "30px 0",
+                }}
+              >
+                No activities yet.
+              </Typography>
+
+            )}
+
+          </Box>
+
+        </Box>
+
+      </Box>
+
     </Box>
   );
 };

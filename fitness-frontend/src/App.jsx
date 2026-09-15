@@ -45,11 +45,7 @@ import fitnessHero from "./assets/fitness-hero.png";
 
 const ActivitiesPage = ({ logOut }) => {
 
-  const [refresh, setRefresh] =
-    useState(0);
-
-  const [activities, setActivities] =
-    useState([]);
+  const [activities, setActivities] = useState([]);
 
 
   const fetchActivities = async () => {
@@ -77,7 +73,7 @@ const ActivitiesPage = ({ logOut }) => {
 
   useEffect(() => {
     fetchActivities();
-  }, [refresh]);
+  }, []);
 
 
   return (
@@ -150,11 +146,14 @@ const ActivitiesPage = ({ logOut }) => {
       {/* ADD ACTIVITY */}
 
       <ActivityForm
-        onActivityAdded={() =>
-          setRefresh(
-            (prev) => prev + 1
-          )
-        }
+        onActivityAdded={(newActivity) => {
+
+          setActivities((prev) => [
+            newActivity,
+            ...prev,
+          ]);
+
+        }}
       />
 
 

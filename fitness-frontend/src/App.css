@@ -897,3 +897,68 @@ button {
   }
 
 }
+
+/* =========================================================
+   WEEKLY GRAPH FIX
+   Keeps the original dashboard CSS/design unchanged.
+   These classes match the current Dashboard.jsx.
+========================================================= */
+
+.weekly-chart {
+  height: 190px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 10px;
+}
+
+.weekly-column {
+  height: 100%;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.weekly-count {
+  height: 18px;
+  margin: 0 !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  color: #7b2cbf;
+}
+
+.weekly-bar {
+  width: 25px !important;
+  min-height: 5px;
+  max-height: 135px;
+  border-radius: 7px 7px 4px 4px;
+  background: linear-gradient(
+    180deg,
+    #9d4edd,
+    #7b2cbf
+  );
+  transition: height 0.3s ease;
+}
+
+.weekly-day {
+  margin-top: 8px !important;
+  color: #9298a6;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+}
+
+
+/* Mobile graph */
+
+@media (max-width: 650px) {
+  .weekly-chart {
+    gap: 5px;
+  }
+
+  .weekly-bar {
+    width: 20px !important;
+  }
+}

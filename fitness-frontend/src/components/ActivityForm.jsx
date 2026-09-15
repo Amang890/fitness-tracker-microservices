@@ -17,10 +17,21 @@ const ActivityForm = ({ onActivityAdded }) => {
     type: "RUNNING",
     duration: "",
     caloriesBurned: "",
-    additionalMetrics: {},
+    additionalMetrics: {
+      steps: "",
+      distanceKm: "",
+      avgHeartRate: "",
+    },
   });
 
-  // Get current local date and time
+  const [errors, setErrors] = useState({
+    duration: "",
+    caloriesBurned: "",
+    steps: "",
+    distanceKm: "",
+    avgHeartRate: "",
+  });
+
   const getLocalDateTime = () => {
     const now = new Date();
 
@@ -34,33 +45,215 @@ const ActivityForm = ({ onActivityAdded }) => {
     return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
   };
 
+  const validateField = (name, value) => {
+    let error = "";
+
+    if (value === "") {
+      error = "This field is required";
+    } else if (!/^\d+(\.\d+)?$/.test(value)) {
+      error = "Please enter a valid number";
+    } else if (Number(value) <= 0) {
+      error = "Value must be greater than 0";
+    }
+
+    setErrors((prev) => ({
+      ...prev,
+      [name]: error,
+    }));
+
+    return error === "";
+  };
+
+  const handleDurationChange = (e) => {
+    const value = e.target.value;
+
+    setActivity((prev) => ({
+      ...prev,
+      duration: value,
+    }));
+
+    validateField("duration", value);
+  };
+
+  const handleCaloriesChange = (e) => {
+    const value = e.target.value;
+
+    setActivity((prev) => ({
+      ...prev,
+      caloriesBurned: value,
+    }));
+
+    validateField("caloriesBurned", value);
+  };
+
+  const handleMetricChange = (metric, value) => {
+    setActivity((prev) => ({
+      ...prev,
+      additionalMetrics: {
+        ...prev.additionalMetrics,
+        [metric]: value,
+      },
+    }));
+
+    validateField(metric, value);
+  };
+
+  const handleTypeChange = (value) => {
+    setActivity((prev) => ({
+      ...prev,
+      type: value,
+      additionalMetrics: {
+        steps: "",
+        distanceKm: "",
+        avgHeartRate: "",
+      },
+    }));
+
+    setErrors({
+      duration: errors.duration,
+      caloriesBurned: errors.caloriesBurned,
+      steps: "",
+      distanceKm: "",
+      avgHeartRate: "",
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const durationValid = validateField(
+      "duration",
+      activity.duration
+    );
+
+    const caloriesValid = validateField(
+      "caloriesBurned",
+      activity.caloriesBurned
+    );
+
+    if (!durationValid || !caloriesValid) {
+      return;
+    }
+
+    // Validate only fields which are visible/required
+    let metricsValid = true;
+
+    if (requiresDistance(activity.type)) {
+      metricsValid =
+        validateField(
+          "distanceKm",
+          activity.additionalMetrics.distanceKm
+        ) && metricsValid;
+    }
+
+    if (requiresHeartRate(activity.type)) {
+      metricsValid =
+        validateField(
+          "avgHeartRate",
+          activity.additionalMetrics.avgHeartRate
+        ) && metricsValid;
+    }
+
+    if (requiresSteps(activity.type)) {
+      metricsValid =
+        validateField(
+          "steps",
+          activity.additionalMetrics.steps
+        ) && metricsValid;
+    }
+
+    if (!metricsValid) {
+      return;
+    }
+
     try {
-      await addActivity({
+      const cleanedMetrics = {};
+
+      Object.entries(activity.additionalMetrics).forEach(
+        ([key, value]) => {
+          if (value !== "") {
+            cleanedMetrics[key] = Number(value);
+          }
+        }
+      );
+
+      const response = await addActivity({
         ...activity,
         duration: Number(activity.duration),
         caloriesBurned: Number(activity.caloriesBurned),
+        additionalMetrics: cleanedMetrics,
         startTime: getLocalDateTime(),
       });
 
-      onActivityAdded();
+      // Immediately add activity to the list
+      onActivityAdded(response.data);
 
+      // Reset form
       setActivity({
         type: "RUNNING",
         duration: "",
         caloriesBurned: "",
-        additionalMetrics: {},
+        additionalMetrics: {
+          steps: "",
+          distanceKm: "",
+          avgHeartRate: "",
+        },
       });
+
+      setErrors({
+        duration: "",
+        caloriesBurned: "",
+        steps: "",
+        distanceKm: "",
+        avgHeartRate: "",
+      });
+
     } catch (error) {
       console.error("Failed to add activity:", error);
 
       if (error.response?.data) {
-        console.error("Backend error:", error.response.data);
+        console.error(
+          "Backend error:",
+          error.response.data
+        );
       }
     }
   };
+
+  const requiresDistance = (type) => {
+    return [
+      "RUNNING",
+      "WALKING",
+      "CYCLING",
+      "SWIMMING",
+    ].includes(type);
+  };
+
+  const requiresSteps = (type) => {
+    return [
+      "RUNNING",
+      "WALKING",
+    ].includes(type);
+  };
+
+  const requiresHeartRate = (type) => {
+    return [
+      "RUNNING",
+      "WALKING",
+      "CYCLING",
+      "SWIMMING",
+      "WEIGHT_TRAINING",
+      "HIIT",
+      "CARDIO",
+      "YOGA",
+    ].includes(type);
+  };
+
+  const isFormValid =
+    activity.duration !== "" &&
+    activity.caloriesBurned !== "" &&
+    errors.duration === "" &&
+    errors.caloriesBurned === "";
 
   return (
     <Box
@@ -74,6 +267,8 @@ const ActivityForm = ({ onActivityAdded }) => {
 
       <div className="form-grid">
 
+        {/* Activity Type */}
+
         <FormControl fullWidth>
           <InputLabel>Activity Type</InputLabel>
 
@@ -81,10 +276,7 @@ const ActivityForm = ({ onActivityAdded }) => {
             value={activity.type}
             label="Activity Type"
             onChange={(e) =>
-              setActivity({
-                ...activity,
-                type: e.target.value,
-              })
+              handleTypeChange(e.target.value)
             }
           >
             <MenuItem value="RUNNING">
@@ -129,36 +321,119 @@ const ActivityForm = ({ onActivityAdded }) => {
           </Select>
         </FormControl>
 
+        {/* Duration */}
+
         <TextField
           fullWidth
           label="Duration (Minutes)"
           type="number"
           value={activity.duration}
-          onChange={(e) =>
-            setActivity({
-              ...activity,
-              duration: e.target.value,
-            })
-          }
+          onChange={handleDurationChange}
+          error={Boolean(errors.duration)}
+          helperText={errors.duration}
+          inputProps={{
+            min: 1,
+            step: 1,
+          }}
         />
+
+        {/* Calories */}
 
         <TextField
           fullWidth
           label="Calories Burned"
           type="number"
           value={activity.caloriesBurned}
-          onChange={(e) =>
-            setActivity({
-              ...activity,
-              caloriesBurned: e.target.value,
-            })
-          }
+          onChange={handleCaloriesChange}
+          error={Boolean(errors.caloriesBurned)}
+          helperText={errors.caloriesBurned}
+          inputProps={{
+            min: 1,
+            step: 1,
+          }}
         />
+
+        {/* Distance */}
+
+        {requiresDistance(activity.type) && (
+          <TextField
+            fullWidth
+            label="Distance (KM)"
+            type="number"
+            value={
+              activity.additionalMetrics.distanceKm
+            }
+            onChange={(e) =>
+              handleMetricChange(
+                "distanceKm",
+                e.target.value
+              )
+            }
+            error={Boolean(errors.distanceKm)}
+            helperText={errors.distanceKm}
+            inputProps={{
+              min: 0.1,
+              step: 0.1,
+            }}
+          />
+        )}
+
+        {/* Steps */}
+
+        {requiresSteps(activity.type) && (
+          <TextField
+            fullWidth
+            label="Steps"
+            type="number"
+            value={
+              activity.additionalMetrics.steps
+            }
+            onChange={(e) =>
+              handleMetricChange(
+                "steps",
+                e.target.value
+              )
+            }
+            error={Boolean(errors.steps)}
+            helperText={errors.steps}
+            inputProps={{
+              min: 1,
+              step: 1,
+            }}
+          />
+        )}
+
+        {/* Heart Rate */}
+
+        {requiresHeartRate(activity.type) && (
+          <TextField
+            fullWidth
+            label="Avg Heart Rate (BPM)"
+            type="number"
+            value={
+              activity.additionalMetrics.avgHeartRate
+            }
+            onChange={(e) =>
+              handleMetricChange(
+                "avgHeartRate",
+                e.target.value
+              )
+            }
+            error={Boolean(errors.avgHeartRate)}
+            helperText={errors.avgHeartRate}
+            inputProps={{
+              min: 40,
+              max: 220,
+              step: 1,
+            }}
+          />
+        )}
 
         <Button
           type="submit"
           variant="contained"
           className="add-button"
+          disabled={!isFormValid}
         >
           + ADD ACTIVITY
         </Button>

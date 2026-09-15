@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API_URL =
-    "https://fitness-api-gateway-w2he.onrender.com/api";
+    "http://localhost:8085/api";
 
 const api = axios.create({
     baseURL: API_URL
@@ -15,12 +15,17 @@ api.interceptors.request.use((config) => {
     const token =
         localStorage.getItem("token");
 
-    if (token) {
+    // Registration is a public endpoint,
+    // so don't send old token/userId with register request
+    const isRegisterRequest =
+        config.url === "/users/register";
+
+    if (token && !isRegisterRequest) {
         config.headers["Authorization"] =
             `Bearer ${token}`;
     }
 
-    if (userId) {
+    if (userId && !isRegisterRequest) {
         config.headers["X-User-ID"] =
             userId;
     }
